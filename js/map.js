@@ -132,15 +132,15 @@ var template = document.querySelector('template').content;
 var mapPinTemplate = template.querySelector('.map__pin');
 var mapCardTemplate = template.querySelector('.map__card');
 
-var renderMapPin = function (obj) {
+var renderMapPin = function (pinData) {
   var newElement = mapPinTemplate.cloneNode(true);
 
   var picture = newElement.querySelector('img');
-  picture.src = obj.author.avatar;
-  picture.alt = obj.offer.title;
+  picture.src = pinData.author.avatar;
+  picture.alt = pinData.offer.title;
 
-  newElement.style.left = obj.location.x - PIN_WIDTH / 2 + 'px';
-  newElement.style.top = obj.location.y - PIN_HEIGHT + 'px';
+  newElement.style.left = pinData.location.x - PIN_WIDTH / 2 + 'px';
+  newElement.style.top = pinData.location.y - PIN_HEIGHT + 'px';
 
   return newElement;
 };
@@ -157,16 +157,16 @@ var renderMapPins = function (arr) {
 var mapPins = document.querySelector('.map__pins');
 mapPins.appendChild(renderMapPins(pinsList));
 
-var renderPopupMapCard = function (obj) {
+var renderPopupMapCard = function (pinData) {
   var fragment = document.createDocumentFragment();
   var newElement = mapCardTemplate.cloneNode(true);
 
-  newElement.querySelector('.popup__title').textContent = obj.offer.title;
-  newElement.querySelector('.popup__text--address').textContent = obj.offer.address;
-  newElement.querySelector('.popup__text--price').textContent = obj.offer.price + '₽/ночь';
-  newElement.querySelector('.popup__type').textContent = PIN_TYPE_TEXT[obj.offer.type];
-  newElement.querySelector('.popup__text--capacity').textContent = obj.offer.rooms + ' комнаты для ' + obj.offer.guests + ' гостей';
-  newElement.querySelector('.popup__text--time').textContent = 'Заезд после ' + obj.offer.checkin + ', выезд до ' + obj.offer.checkout;
+  newElement.querySelector('.popup__title').textContent = pinData.offer.title;
+  newElement.querySelector('.popup__text--address').textContent = pinData.offer.address;
+  newElement.querySelector('.popup__text--price').textContent = pinData.offer.price + '₽/ночь';
+  newElement.querySelector('.popup__type').textContent = PIN_TYPE_TEXT[pinData.offer.type];
+  newElement.querySelector('.popup__text--capacity').textContent = pinData.offer.rooms + ' комнаты для ' + pinData.offer.guests + ' гостей';
+  newElement.querySelector('.popup__text--time').textContent = 'Заезд после ' + pinData.offer.checkin + ', выезд до ' + pinData.offer.checkout;
 
   // ПРИЕМУЩЕСТВА (УДОБСТВА):
   var popupFeatures = newElement.querySelector('.popup__features');
@@ -175,14 +175,14 @@ var renderPopupMapCard = function (obj) {
     popupFeatures.removeChild(popupFeatures.firstChild);
   }
   // создаем и добавляем новые li с нужными классами
-  for (i = 0; i < obj.offer.features.length; i++) {
+  for (i = 0; i < pinData.offer.features.length; i++) {
     var popupFeatureItem = document.createElement('li');
     popupFeatureItem.classList.add('popup__feature');
-    popupFeatureItem.classList.add('popup__feature--' + obj.offer.features[i]);
+    popupFeatureItem.classList.add('popup__feature--' + pinData.offer.features[i]);
     popupFeatures.appendChild(popupFeatureItem);
   }
 
-  newElement.querySelector('.popup__description').textContent = obj.offer.description;
+  newElement.querySelector('.popup__description').textContent = pinData.offer.description;
 
   // ФОТОГРАФИИ:
   var popupPhotos = newElement.querySelector('.popup__photos');
@@ -193,15 +193,15 @@ var renderPopupMapCard = function (obj) {
     popupPhotos.removeChild(popupPhotos.firstChild);
   }
   // создаем и добавляем новые img с нужным src
-  for (i = 0; i < obj.offer.photos.length; i++) {
+  for (i = 0; i < pinData.offer.photos.length; i++) {
     var popupPhotoPictureItem = popupPhotoPicture.cloneNode();
-    popupPhotoPictureItem.src = obj.offer.photos[i];
+    popupPhotoPictureItem.src = pinData.offer.photos[i];
     popupPhotos.appendChild(popupPhotoPictureItem);
   }
 
   // АВАТАРКА:
   var popupAvatar = newElement.querySelector('.popup__avatar');
-  popupAvatar.src = obj.author.avatar;
+  popupAvatar.src = pinData.author.avatar;
 
   fragment.appendChild(newElement);
   return fragment;
