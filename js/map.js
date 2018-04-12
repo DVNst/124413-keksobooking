@@ -38,19 +38,20 @@ var getRandomArrayElement = function (arr) {
   return arr[getRandom(arr.length - 1)];
 };
 
-var getRandomlocations = function (amount, xMin, xMax, Ymin, Ymax) {
-  var newArr = [];
-  for (var i = 0; i < amount; i++) {
-    newArr[i] = [];
-    newArr[i][0] = getRandom(xMax, xMin);
-    newArr[i][1] = getRandom(Ymax, Ymin);
+var getMixArray = function (arr) {
+  // возвращает массив с перемешенными элементами
+  for (i = arr.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
   }
 
-  return newArr;
+  return arr;
 };
 
-var getRandomSequenceIndex = function (lengthSequence) {
-  // возвращает случайную последовательность индексов от 0 до (lengthSequence - 1)
+var getSequenceIndex = function (lengthSequence) {
+  // возвращает массив чисел, по порядку от 0 до lengthSequence - 1
 
   // формируем массив чисел, по порядку от 0 до lengthSequence
   var arraySequence = [];
@@ -58,15 +59,11 @@ var getRandomSequenceIndex = function (lengthSequence) {
     arraySequence[i] = i;
   }
 
-  // мешаем по алгоритму Фишера-Йейса (Fisher-Yates)
-  for (i = arraySequence.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var temp = arraySequence[i];
-    arraySequence[i] = arraySequence[j];
-    arraySequence[j] = temp;
-  }
-
   return arraySequence;
+};
+
+var getRandomSequenceIndex = function (amount) {
+  return getMixArray(getMixArray(getSequenceIndex(amount)));
 };
 
 var getRandomArrayElements = function (arr, amountElements) {
@@ -93,25 +90,26 @@ var getRandomArrayElements = function (arr, amountElements) {
 
   return newArr;
 };
-// создаем массив со случайными координатами (адресами)
-var locationsArray = getRandomlocations(PIN_AMOUNT, LOCATION_X_BEGIN, LOCATION_X_END, LOCATION_Y_BEGIN, LOCATION_Y_END);
+
 // индексы, в случайном порядке, для картинок аватарок
 var pinAvatarIndex = getRandomSequenceIndex(PIN_AMOUNT);
 // индексы, в случайном порядке, для массива с заголовками объявлений
 var pinTitleIndex = getRandomSequenceIndex(PIN_TITLE.length);
 
 var getPinItem = function (i) {
+  var locationX = getRandom(LOCATION_X_END, LOCATION_X_BEGIN);
+  var locationY = getRandom(LOCATION_Y_END, LOCATION_Y_BEGIN);
   return {
     'author': {
       'avatar': 'img/avatars/user0' + (pinAvatarIndex[i] + 1) + '.png'
     },
     'location': {
-      'x': locationsArray[i][0],
-      'y': locationsArray[i][1]
+      'x': locationX,
+      'y': locationY
     },
     'offer': {
       'title': PIN_TITLE[pinTitleIndex[i]],
-      'address': (locationsArray[i][0] + ', ' + locationsArray[i][1]),
+      'address': (locationX + ', ' + locationY),
       'price': getRandom(OFFER_PRICE_MAX, OFFER_PRICE_MIN),
       'type': getRandomArrayElement(PIN_TYPE),
       'rooms': getRandom(OFFER_ROOMS_MAX, OFFER_ROOMS_MIN),
@@ -130,24 +128,27 @@ for (var i = 0; i < PIN_AMOUNT; i++) {
   pinsList.push(getPinItem(i));
 }
 
-var Template = document.querySelector('template').content;
-var mapPinTemplate = Template.querySelector('.map__pin');
-var mapCardTemplate = Template.querySelector('.map__card');
+var template = document.querySelector('template').content;
+var mapPinTemplate = template.querySelector('.map__pin');
+var mapCardTemplate = template.querySelector('.map__card');
+
+var renderMapPin = function (obj) {
+  var newElement = mapPinTemplate.cloneNode(true);
+
+  var picture = newElement.querySelector('img');
+  picture.src = obj.author.avatar;
+  picture.alt = obj.offer.title;
+
+  newElement.style.left = obj.location.x - PIN_WIDTH / 2 + 'px';
+  newElement.style.top = obj.location.y - PIN_HEIGHT + 'px';
+
+  return newElement;
+};
 
 var renderMapPins = function (arr) {
   var fragment = document.createDocumentFragment();
   for (i = 0; i < arr.length; i++) {
-    var newElement = mapPinTemplate.cloneNode(true);
-
-    var picture = newElement.querySelector('img');
-    picture.src = arr[i].author.avatar;
-    picture.alt = arr[i].offer.title;
-
-    // newElement.offsetWidth и newElement.offsetHeight возвращают почему-то 0
-    newElement.style.left = arr[i].location.x - PIN_WIDTH / 2 + 'px';
-    newElement.style.top = arr[i].location.y - PIN_HEIGHT + 'px';
-
-    fragment.appendChild(newElement);
+    fragment.appendChild(renderMapPin(arr[i]));
   }
 
   return fragment;
@@ -156,32 +157,32 @@ var renderMapPins = function (arr) {
 var mapPins = document.querySelector('.map__pins');
 mapPins.appendChild(renderMapPins(pinsList));
 
-var renderPopupMapCard = function (arr) {
+var renderPopupMapCard = function (obj) {
   var fragment = document.createDocumentFragment();
   var newElement = mapCardTemplate.cloneNode(true);
 
-  newElement.querySelector('.popup__title').textContent = arr[0].offer.title;
-  newElement.querySelector('.popup__text--address').textContent = arr[0].offer.address;
-  newElement.querySelector('.popup__text--price').textContent = arr[0].offer.price + '₽/ночь';
-  newElement.querySelector('.popup__type').textContent = PIN_TYPE_TEXT[arr[0].offer.type];
-  newElement.querySelector('.popup__text--capacity').textContent = arr[0].offer.rooms + ' комнаты для ' + arr[0].offer.guests + ' гостей';
-  newElement.querySelector('.popup__text--time').textContent = 'Заезд после ' + arr[0].offer.checkin + ', выезд до ' + arr[0].offer.checkout;
+  newElement.querySelector('.popup__title').textContent = obj.offer.title;
+  newElement.querySelector('.popup__text--address').textContent = obj.offer.address;
+  newElement.querySelector('.popup__text--price').textContent = obj.offer.price + '₽/ночь';
+  newElement.querySelector('.popup__type').textContent = PIN_TYPE_TEXT[obj.offer.type];
+  newElement.querySelector('.popup__text--capacity').textContent = obj.offer.rooms + ' комнаты для ' + obj.offer.guests + ' гостей';
+  newElement.querySelector('.popup__text--time').textContent = 'Заезд после ' + obj.offer.checkin + ', выезд до ' + obj.offer.checkout;
 
   // ПРИЕМУЩЕСТВА (УДОБСТВА):
-  var PopupFeatures = newElement.querySelector('.popup__features');
+  var popupFeatures = newElement.querySelector('.popup__features');
   // удаляем все li из заготовки
-  while (PopupFeatures.firstChild) {
-    PopupFeatures.removeChild(PopupFeatures.firstChild);
+  while (popupFeatures.firstChild) {
+    popupFeatures.removeChild(popupFeatures.firstChild);
   }
   // создаем и добавляем новые li с нужными классами
-  for (i = 0; i < arr[0].offer.features.length; i++) {
-    var PopupFeatureItem = document.createElement('li');
-    PopupFeatureItem.classList.add('popup__feature');
-    PopupFeatureItem.classList.add('popup__feature--' + arr[0].offer.features[i]);
-    PopupFeatures.appendChild(PopupFeatureItem);
+  for (i = 0; i < obj.offer.features.length; i++) {
+    var popupFeatureItem = document.createElement('li');
+    popupFeatureItem.classList.add('popup__feature');
+    popupFeatureItem.classList.add('popup__feature--' + obj.offer.features[i]);
+    popupFeatures.appendChild(popupFeatureItem);
   }
 
-  newElement.querySelector('.popup__description').textContent = arr[0].offer.description;
+  newElement.querySelector('.popup__description').textContent = obj.offer.description;
 
   // ФОТОГРАФИИ:
   var popupPhotos = newElement.querySelector('.popup__photos');
@@ -192,19 +193,19 @@ var renderPopupMapCard = function (arr) {
     popupPhotos.removeChild(popupPhotos.firstChild);
   }
   // создаем и добавляем новые img с нужным src
-  for (i = 0; i < arr[0].offer.photos.length; i++) {
+  for (i = 0; i < obj.offer.photos.length; i++) {
     var popupPhotoPictureItem = popupPhotoPicture.cloneNode();
-    popupPhotoPictureItem.src = arr[0].offer.photos[i];
+    popupPhotoPictureItem.src = obj.offer.photos[i];
     popupPhotos.appendChild(popupPhotoPictureItem);
   }
 
   // АВАТАРКА:
   var popupAvatar = newElement.querySelector('.popup__avatar');
-  popupAvatar.src = arr[0].author.avatar;
+  popupAvatar.src = obj.author.avatar;
 
   fragment.appendChild(newElement);
   return fragment;
 };
 
 var map = document.querySelector('.map');
-map.appendChild(renderPopupMapCard(pinsList));
+map.appendChild(renderPopupMapCard(pinsList[0]));
