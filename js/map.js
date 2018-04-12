@@ -38,6 +38,17 @@ var getRandomArrayElement = function (arr) {
   return arr[getRandom(arr.length - 1)];
 };
 
+var getRandomlocations = function (amount, xMin, xMax, Ymin, Ymax) {
+  var newArr = [];
+  for (var i = 0; i < amount; i++) {
+    newArr[i] = [];
+    newArr[i][0] = getRandom(xMax, xMin);
+    newArr[i][1] = getRandom(Ymax, Ymin);
+  }
+
+  return newArr;
+};
+
 var getRandomSequenceIndex = function (lengthSequence) {
   // возвращает случайную последовательность индексов от 0 до (lengthSequence - 1)
 
@@ -57,14 +68,6 @@ var getRandomSequenceIndex = function (lengthSequence) {
 
   return arraySequence;
 };
-
-
-// var getArrayElement = function (arr) {
-//   var arrIndex = getRandom(arr.length - 1);
-//   var arrElemet = arr[arrIndex];
-//   arr.splice(arrIndex, 1);
-//   return arrElemet;
-// };
 
 var getRandomArrayElements = function (arr, amountElements) {
   // возвращает массив элементов в случайном порядке
@@ -90,8 +93,11 @@ var getRandomArrayElements = function (arr, amountElements) {
 
   return newArr;
 };
-
+// создаем массив со случайными координатами (адресами)
+var locationsArray = getRandomlocations(PIN_AMOUNT, LOCATION_X_BEGIN, LOCATION_X_END, LOCATION_Y_BEGIN, LOCATION_Y_END);
+// индексы, в случайном порядке, для картинок аватарок
 var pinAvatarIndex = getRandomSequenceIndex(PIN_AMOUNT);
+// индексы, в случайном порядке, для массива с заголовками объявлений
 var pinTitleIndex = getRandomSequenceIndex(PIN_TITLE.length);
 
 var getPinItem = function (i) {
@@ -100,14 +106,12 @@ var getPinItem = function (i) {
       'avatar': 'img/avatars/user0' + (pinAvatarIndex[i] + 1) + '.png'
     },
     'location': {
-      'x': getRandom(LOCATION_X_END, LOCATION_X_BEGIN),
-      'y': getRandom(LOCATION_Y_END, LOCATION_Y_BEGIN)
+      'x': locationsArray[i][0],
+      'y': locationsArray[i][1]
     },
     'offer': {
       'title': PIN_TITLE[pinTitleIndex[i]],
-      'address': function () {
-        return (this['location']['x'] + ', ' + this['location']['y']);
-      },
+      'address': (locationsArray[i][0] + ', ' + locationsArray[i][1]),
       'price': getRandom(OFFER_PRICE_MAX, OFFER_PRICE_MIN),
       'type': getRandomArrayElement(PIN_TYPE),
       'rooms': getRandom(OFFER_ROOMS_MAX, OFFER_ROOMS_MIN),
@@ -124,53 +128,83 @@ var getPinItem = function (i) {
 var pinsList = [];
 for (var i = 0; i < PIN_AMOUNT; i++) {
   pinsList.push(getPinItem(i));
-  // console.log(pinsList[i].offer.type);
-  // console.log(Object.keys(pinsList[i].offer.type));
 }
 
-var mapPinTemplate = document.querySelector('template').content.querySelector('.map__pin');
+var Template = document.querySelector('template').content;
+var mapPinTemplate = Template.querySelector('.map__pin');
+var mapCardTemplate = Template.querySelector('.map__card');
 
-var fragment = document.createDocumentFragment();
-for (i = 0; i < pinsList.length; i++) {
-  var newElement = mapPinTemplate.cloneNode(true);
+var renderMapPins = function (arr) {
+  var fragment = document.createDocumentFragment();
+  for (i = 0; i < arr.length; i++) {
+    var newElement = mapPinTemplate.cloneNode(true);
 
-  var picture = newElement.querySelector('img');
-  picture.src = pinsList[i].author.avatar;
-  picture.alt = pinsList[i].offer.title;
+    var picture = newElement.querySelector('img');
+    picture.src = arr[i].author.avatar;
+    picture.alt = arr[i].offer.title;
 
-  // newElement.offsetWidth и newElement.offsetHeight возвращают почему-то 0
-  newElement.style.left = pinsList[i].location.x - PIN_WIDTH / 2 + 'px';
-  newElement.style.top = pinsList[i].location.y - PIN_HEIGHT + 'px';
+    // newElement.offsetWidth и newElement.offsetHeight возвращают почему-то 0
+    newElement.style.left = arr[i].location.x - PIN_WIDTH / 2 + 'px';
+    newElement.style.top = arr[i].location.y - PIN_HEIGHT + 'px';
 
-  fragment.appendChild(newElement);
-}
+    fragment.appendChild(newElement);
+  }
+
+  return fragment;
+};
 
 var mapPins = document.querySelector('.map__pins');
-mapPins.appendChild(fragment);
+mapPins.appendChild(renderMapPins(pinsList));
 
-newElement = document.querySelector('template').content.querySelector('.map__card').cloneNode(true);
-newElement.querySelector('.popup__title').textContent = pinsList[0].offer.title;
-newElement.querySelector('.popup__text--address').textContent = pinsList[0].offer.address;
-newElement.querySelector('.popup__text--price').textContent = pinsList[0].offer.price + '₽/ночь';
-newElement.querySelector('.popup__type').textContent = PIN_TYPE_TEXT[pinsList[0].offer.type];
-newElement.querySelector('.popup__text--capacity').textContent = pinsList[0].offer.rooms + ' комнаты для ' + pinsList[0].offer.guests + ' гостей';
-newElement.querySelector('.popup__text--time').textContent = 'Заезд после ' + pinsList[0].offer.checkin + ', выезд до ' + pinsList[0].offer.checkout;
+var renderPopupMapCard = function (arr) {
+  var fragment = document.createDocumentFragment();
+  var newElement = mapCardTemplate.cloneNode(true);
 
-// var features = newElement.querySelector('.popup__features');
-// var featuresItem = features.querySelectorAll('.popup__feature');
+  newElement.querySelector('.popup__title').textContent = arr[0].offer.title;
+  newElement.querySelector('.popup__text--address').textContent = arr[0].offer.address;
+  newElement.querySelector('.popup__text--price').textContent = arr[0].offer.price + '₽/ночь';
+  newElement.querySelector('.popup__type').textContent = PIN_TYPE_TEXT[arr[0].offer.type];
+  newElement.querySelector('.popup__text--capacity').textContent = arr[0].offer.rooms + ' комнаты для ' + arr[0].offer.guests + ' гостей';
+  newElement.querySelector('.popup__text--time').textContent = 'Заезд после ' + arr[0].offer.checkin + ', выезд до ' + arr[0].offer.checkout;
 
-// console.log(features);
-// console.log(featuresItem);
-// for (var i = 0; i < featuresItem.length; i++) {
-// console.log(featuresItem[i]);
-// features.removeChild(featuresItem[i]);
-// console.log(pinsList[1].offer.features[i]);
-// }
-// console.log(featuresItem[0]);
-//
-// for (var i = 0; i < pinsList[1].offer.features.length; i++) {
-//   console.log(pinsList[1].offer.features[i]);
-//   features.appendChild(pinsList[1].offer.features[i]);
-// }
-// console.log(newElement);
-// console.log(features);
+  // ПРИЕМУЩЕСТВА (УДОБСТВА):
+  var PopupFeatures = newElement.querySelector('.popup__features');
+  // удаляем все li из заготовки
+  while (PopupFeatures.firstChild) {
+    PopupFeatures.removeChild(PopupFeatures.firstChild);
+  }
+  // создаем и добавляем новые li с нужными классами
+  for (i = 0; i < arr[0].offer.features.length; i++) {
+    var PopupFeatureItem = document.createElement('li');
+    PopupFeatureItem.classList.add('popup__feature');
+    PopupFeatureItem.classList.add('popup__feature--' + arr[0].offer.features[i]);
+    PopupFeatures.appendChild(PopupFeatureItem);
+  }
+
+  newElement.querySelector('.popup__description').textContent = arr[0].offer.description;
+
+  // ФОТОГРАФИИ:
+  var popupPhotos = newElement.querySelector('.popup__photos');
+  // копируем селектор img
+  var popupPhotoPicture = popupPhotos.querySelector('img');
+  // удаляем всe img из заготовки
+  while (popupPhotos.firstChild) {
+    popupPhotos.removeChild(popupPhotos.firstChild);
+  }
+  // создаем и добавляем новые img с нужным src
+  for (i = 0; i < arr[0].offer.photos.length; i++) {
+    var popupPhotoPictureItem = popupPhotoPicture.cloneNode();
+    popupPhotoPictureItem.src = arr[0].offer.photos[i];
+    popupPhotos.appendChild(popupPhotoPictureItem);
+  }
+
+  // АВАТАРКА:
+  var popupAvatar = newElement.querySelector('.popup__avatar');
+  popupAvatar.src = arr[0].author.avatar;
+
+  fragment.appendChild(newElement);
+  return fragment;
+};
+
+var map = document.querySelector('.map');
+map.appendChild(renderPopupMapCard(pinsList));
