@@ -1,6 +1,7 @@
 'use strict';
 
 var PIN_AMOUNT = 8;
+var PIN_AVATAR_INDEX = [1, 2, 3, 4, 5, 6, 7, 8];
 var PIN_TITLE = ['Большая уютная квартира', 'Маленькая неуютная квартира', 'Огромный прекрасный дворец', 'Маленький ужасный дворец', 'Красивый гостевой домик', 'Некрасивый негостеприимный домик', 'Уютное бунгало далеко от моря', 'Неуютное бунгало по колено в воде'];
 var PIN_TYPE = ['palace', 'flat', 'house', 'bungalo'];
 var PIN_TYPE_TEXT = {
@@ -40,35 +41,20 @@ var getRandomArrayElement = function (arr) {
 
 var getMixArray = function (arr) {
   // возвращает массив с перемешенными элементами
-  for (i = arr.length - 1; i > 0; i--) {
+  var newArr = arr.slice();
+  for (i = newArr.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));
-    var temp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = temp;
+    var temp = newArr[i];
+    newArr[i] = newArr[j];
+    newArr[j] = temp;
   }
 
-  return arr;
-};
-
-var getSequenceIndex = function (lengthSequence) {
-  // возвращает массив чисел, по порядку от 0 до lengthSequence - 1
-
-  // формируем массив чисел, по порядку от 0 до lengthSequence
-  var arraySequence = [];
-  for (var i = 0; i < lengthSequence; i++) {
-    arraySequence[i] = i;
-  }
-
-  return arraySequence;
-};
-
-var getRandomSequenceIndex = function (amount) {
-  return getMixArray(getMixArray(getSequenceIndex(amount)));
+  return newArr;
 };
 
 var getRandomArrayElements = function (arr, amountElements) {
   // возвращает массив элементов в случайном порядке
-  // либо, если amountElements (количество элементов) не задан, возвращает случайное количество элементов
+  // либо, если amountElements (количество элементов) не задан, возвращает массив элементов в случайном порядке и со случайным количеством элементов
   if (!amountElements) {
     amountElements = getRandom(arr.length, 1); // кол-во элементов в новом маcсиве
 
@@ -91,24 +77,24 @@ var getRandomArrayElements = function (arr, amountElements) {
   return newArr;
 };
 
-// индексы, в случайном порядке, для картинок аватарок
-var pinAvatarIndex = getRandomSequenceIndex(PIN_AMOUNT);
-// индексы, в случайном порядке, для массива с заголовками объявлений
-var pinTitleIndex = getRandomSequenceIndex(PIN_TITLE.length);
+// индексы, в случайном порядке, для картинок аватарок:
+var pinAvatarIndex = getMixArray(PIN_AVATAR_INDEX);
+// массива в случайном порядке с заголовками объявлений:
+var pinTitles = getMixArray(PIN_TITLE);
 
 var getPinItem = function (i) {
   var locationX = getRandom(LOCATION_X_END, LOCATION_X_BEGIN);
   var locationY = getRandom(LOCATION_Y_END, LOCATION_Y_BEGIN);
   return {
     'author': {
-      'avatar': 'img/avatars/user0' + (pinAvatarIndex[i] + 1) + '.png'
+      'avatar': 'img/avatars/user0' + (pinAvatarIndex[i]) + '.png'
     },
     'location': {
       'x': locationX,
       'y': locationY
     },
     'offer': {
-      'title': PIN_TITLE[pinTitleIndex[i]],
+      'title': pinTitles[i],
       'address': (locationX + ', ' + locationY),
       'price': getRandom(OFFER_PRICE_MAX, OFFER_PRICE_MIN),
       'type': getRandomArrayElement(PIN_TYPE),
