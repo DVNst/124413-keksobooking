@@ -39,7 +39,7 @@ var getRandomArrayElement = function (arr) {
   return arr[getRandom(arr.length - 1)];
 };
 
-var getMixArray = function (arr) {
+var shuffleArray = function (arr) {
   // возвращает массив с перемешенными элементами
   var newArr = arr.slice();
   for (i = newArr.length - 1; i > 0; i--) {
@@ -78,9 +78,9 @@ var getRandomArrayElements = function (arr, amountElements) {
 };
 
 // индексы, в случайном порядке, для картинок аватарок:
-var pinAvatarIndex = getMixArray(PIN_AVATAR_INDEX);
+var pinAvatarIndex = shuffleArray(PIN_AVATAR_INDEX);
 // массива в случайном порядке с заголовками объявлений:
-var pinTitles = getMixArray(PIN_TITLE);
+var pinTitles = shuffleArray(PIN_TITLE);
 
 var getPinItem = function (i) {
   var locationX = getRandom(LOCATION_X_END, LOCATION_X_BEGIN);
