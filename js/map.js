@@ -17,6 +17,10 @@ var PIN_PHOTOS = ['http://o0.github.io/assets/images/tokyo/hotel1.jpg', 'http://
 var PIN_WIDTH = 50;
 var PIN_HEIGHT = 70;
 
+var PIN_MAIN_WIDTH = 62;
+var PIN_MAIN_HEIGHT = 62;
+var PIN_MAIN_POINTER = 22;
+
 var LOCATION_X_BEGIN = 300;
 var LOCATION_X_END = 900;
 var LOCATION_Y_BEGIN = 150;
@@ -28,7 +32,20 @@ var OFFER_ROOMS_MAX = 5;
 var OFFER_QUEST_MIN = 1;
 var OFFER_QUEST_MAX = 10;
 
-document.querySelector('.map').classList.remove('map--faded');
+var template = document.querySelector('template').content;
+var mapPinTemplate = template.querySelector('.map__pin');
+var mapCardTemplate = template.querySelector('.map__card');
+
+var map = document.querySelector('.map');
+var mapPins = map.querySelector('.map__pins');
+var mapPinMain = document.querySelector('.map__pin--main');
+
+var adForm = document.querySelector('.ad-form');
+var formActive = false;
+var adFormFieldset = adForm.querySelectorAll('fieldset');
+var adFormAddress = document.getElementById('address');
+
+// map.classList.remove('map--faded');
 
 var getRandom = function (max, min) {
   min = (!min) ? 0 : min; // если min не задан, то генерируем от 0
@@ -79,7 +96,7 @@ var getRandomArrayElements = function (arr, amountElements) {
 
 // индексы, в случайном порядке, для картинок аватарок:
 var pinAvatarIndex = shuffleArray(PIN_AVATAR_INDEX);
-// массива в случайном порядке с заголовками объявлений:
+// массив в случайном порядке с заголовками объявлений:
 var pinTitles = shuffleArray(PIN_TITLE);
 
 var getPinItem = function (i) {
@@ -114,10 +131,6 @@ for (var i = 0; i < PIN_AMOUNT; i++) {
   pinsList.push(getPinItem(i));
 }
 
-var template = document.querySelector('template').content;
-var mapPinTemplate = template.querySelector('.map__pin');
-var mapCardTemplate = template.querySelector('.map__card');
-
 var renderMapPin = function (pinData) {
   var newElement = mapPinTemplate.cloneNode(true);
 
@@ -140,8 +153,9 @@ var renderMapPins = function (arr) {
   return fragment;
 };
 
-var mapPins = document.querySelector('.map__pins');
-mapPins.appendChild(renderMapPins(pinsList));
+var activateMapPins = function () {
+  mapPins.appendChild(renderMapPins(pinsList));
+};
 
 var renderPopupMapCard = function (pinData) {
   var fragment = document.createDocumentFragment();
@@ -193,5 +207,45 @@ var renderPopupMapCard = function (pinData) {
   return fragment;
 };
 
-var map = document.querySelector('.map');
-map.appendChild(renderPopupMapCard(pinsList[0]));
+var activatePopupMapCard = function () {
+  map.appendChild(renderPopupMapCard(pinsList[0]));
+};
+activatePopupMapCard();
+
+// Переключает/выключает доступность (disabled):
+var switchesDisabled = function (arr, onOff) {
+  for (i = 0; i < arr.length; i++) {
+    arr[i].disabled = onOff;
+  }
+};
+
+var activateForm = function () {
+  switchesDisabled(adFormFieldset, false);
+  map.classList.remove('map--faded');
+  adForm.classList.remove('ad-form--disabled');
+};
+
+var getAddress = function (pin) {
+  var addressX = Math.round(parseInt(pin.style.left, 10) + (PIN_MAIN_WIDTH / 2));
+  var addressY = Math.round(parseInt(pin.style.top, 10) + PIN_MAIN_HEIGHT + PIN_MAIN_POINTER);
+  return addressX + ', ' + addressY;
+};
+
+var getDefaultAddress = function (pin) {
+  var addressX = Math.round(parseInt(pin.style.left, 10) + (PIN_MAIN_WIDTH / 2));
+  var addressY = Math.round(parseInt(pin.style.top, 10) + (PIN_MAIN_HEIGHT / 2));
+  return addressX + ', ' + addressY;
+};
+
+adFormAddress.value = getDefaultAddress(mapPinMain);
+
+mapPinMain.addEventListener('mouseup', function () {
+  if (!formActive) {
+    formActive = true;
+    activateForm();
+    activateMapPins();
+  }
+  adFormAddress.value = getAddress(mapPinMain);
+});
+
+// console.log(mapPins);
