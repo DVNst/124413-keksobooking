@@ -1,5 +1,8 @@
 'use strict';
 
+// var ESC_KEYCODE = 27;
+var ENTER_KEYCODE = 13;
+
 var PIN_AMOUNT = 8;
 var PIN_AVATAR_INDEX = [1, 2, 3, 4, 5, 6, 7, 8];
 var PIN_TITLE = ['Большая уютная квартира', 'Маленькая неуютная квартира', 'Огромный прекрасный дворец', 'Маленький ужасный дворец', 'Красивый гостевой домик', 'Некрасивый негостеприимный домик', 'Уютное бунгало далеко от моря', 'Неуютное бунгало по колено в воде'];
@@ -45,8 +48,6 @@ var formActive = false;
 var adFormFieldset = adForm.querySelectorAll('fieldset');
 var adFormAddress = document.getElementById('address');
 
-// map.classList.remove('map--faded');
-
 var getRandom = function (max, min) {
   min = (!min) ? 0 : min; // если min не задан, то генерируем от 0
   return Math.round(Math.random() * (max - min) + min);
@@ -59,7 +60,7 @@ var getRandomArrayElement = function (arr) {
 var shuffleArray = function (arr) {
   // возвращает массив с перемешенными элементами
   var newArr = arr.slice();
-  for (i = newArr.length - 1; i > 0; i--) {
+  for (var i = newArr.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));
     var temp = newArr[i];
     newArr[i] = newArr[j];
@@ -126,12 +127,16 @@ var getPinItem = function (i) {
   };
 };
 
-var pinsList = [];
-for (var i = 0; i < PIN_AMOUNT; i++) {
-  pinsList.push(getPinItem(i));
-}
+var getPinsList = function () {
+  var newArr = [];
+  for (var i = 0; i < PIN_AMOUNT; i++) {
+    newArr.push(getPinItem(i));
+  }
+  return newArr;
+};
+var pinsList = getPinsList();
 
-var renderMapPin = function (pinData) {
+var renderMapPin = function (pinData, pinIndex) {
   var newElement = mapPinTemplate.cloneNode(true);
 
   var picture = newElement.querySelector('img');
@@ -141,13 +146,18 @@ var renderMapPin = function (pinData) {
   newElement.style.left = pinData.location.x - PIN_WIDTH / 2 + 'px';
   newElement.style.top = pinData.location.y - PIN_HEIGHT + 'px';
 
+  var inputPinIndex = document.createElement('input');
+  inputPinIndex.type = 'hidden';
+  inputPinIndex.value = pinIndex;
+  newElement.appendChild(inputPinIndex);
+
   return newElement;
 };
 
 var renderMapPins = function (arr) {
   var fragment = document.createDocumentFragment();
-  for (i = 0; i < arr.length; i++) {
-    fragment.appendChild(renderMapPin(arr[i]));
+  for (var i = 0; i < arr.length; i++) {
+    fragment.appendChild(renderMapPin(arr[i], i));
   }
 
   return fragment;
@@ -157,7 +167,7 @@ var activateMapPins = function () {
   mapPins.appendChild(renderMapPins(pinsList));
 };
 
-var renderPopupMapCard = function (pinData) {
+var getPopupMapCard = function (pinData) {
   var fragment = document.createDocumentFragment();
   var newElement = mapCardTemplate.cloneNode(true);
 
@@ -175,7 +185,7 @@ var renderPopupMapCard = function (pinData) {
     popupFeatures.removeChild(popupFeatures.firstChild);
   }
   // создаем и добавляем новые li с нужными классами
-  for (i = 0; i < pinData.offer.features.length; i++) {
+  for (var i = 0; i < pinData.offer.features.length; i++) {
     var popupFeatureItem = document.createElement('li');
     popupFeatureItem.classList.add('popup__feature');
     popupFeatureItem.classList.add('popup__feature--' + pinData.offer.features[i]);
@@ -207,14 +217,33 @@ var renderPopupMapCard = function (pinData) {
   return fragment;
 };
 
-var activatePopupMapCard = function () {
-  map.appendChild(renderPopupMapCard(pinsList[0]));
+var deletePopupMapCard = function () {
+  var mapCardPopup = map.querySelector('.map__card.popup');
+  if (mapCardPopup) {
+    map.removeChild(mapCardPopup);
+  }
 };
-activatePopupMapCard();
+
+var renderPopupMapCard = function (i) {
+  map.appendChild(getPopupMapCard(pinsList[i]));
+
+  var mapCardPopup = map.querySelector('.map__card.popup');
+  var mapCardPopupClose = mapCardPopup.querySelector('.popup__close');
+
+  mapCardPopupClose.addEventListener('click', function () {
+    deletePopupMapCard();
+  });
+
+  mapCardPopupClose.addEventListener('keydown', function (evt) {
+    if (evt.keyCode === ENTER_KEYCODE) {
+      deletePopupMapCard();
+    }
+  });
+};
 
 // Переключает/выключает доступность (disabled):
 var switchesDisabled = function (arr, onOff) {
-  for (i = 0; i < arr.length; i++) {
+  for (var i = 0; i < arr.length; i++) {
     arr[i].disabled = onOff;
   }
 };
@@ -239,13 +268,32 @@ var getDefaultAddress = function (pin) {
 
 adFormAddress.value = getDefaultAddress(mapPinMain);
 
+var activatePopupMapCard = function (evt) {
+  var pinIndex = evt.currentTarget.querySelector('input').value;
+  deletePopupMapCard();
+  renderPopupMapCard(pinIndex);
+};
+
+var activateEventListener = function () {
+  var mapPinsItems = mapPins.querySelectorAll('.map__pin:not(.map__pin--main)');
+  for (var i = 0; i < mapPinsItems.length; i++) {
+    mapPinsItems[i].addEventListener('click', activatePopupMapCard);
+  }
+};
+
 mapPinMain.addEventListener('mouseup', function () {
   if (!formActive) {
     formActive = true;
     activateForm();
     activateMapPins();
+    activateEventListener();
   }
   adFormAddress.value = getAddress(mapPinMain);
+
 });
 
-// console.log(mapPins);
+// console.log(mapPins.querySelectorAll(".map__pin"));
+
+// mapPins.addEventListener('click', function (evn) {
+//   console.log(evn);
+// });
