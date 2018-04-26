@@ -1,5 +1,8 @@
 'use strict';
 
+// var ESC_KEYCODE = 27;
+var ENTER_KEYCODE = 13;
+
 var PIN_AMOUNT = 8;
 var PIN_AVATAR_INDEX = [1, 2, 3, 4, 5, 6, 7, 8];
 var PIN_TITLE = ['Большая уютная квартира', 'Маленькая неуютная квартира', 'Огромный прекрасный дворец', 'Маленький ужасный дворец', 'Красивый гостевой домик', 'Некрасивый негостеприимный домик', 'Уютное бунгало далеко от моря', 'Неуютное бунгало по колено в воде'];
@@ -17,6 +20,10 @@ var PIN_PHOTOS = ['http://o0.github.io/assets/images/tokyo/hotel1.jpg', 'http://
 var PIN_WIDTH = 50;
 var PIN_HEIGHT = 70;
 
+var PIN_MAIN_WIDTH = 62;
+var PIN_MAIN_HEIGHT = 62;
+var PIN_MAIN_POINTER = 22;
+
 var LOCATION_X_BEGIN = 300;
 var LOCATION_X_END = 900;
 var LOCATION_Y_BEGIN = 150;
@@ -28,7 +35,20 @@ var OFFER_ROOMS_MAX = 5;
 var OFFER_QUEST_MIN = 1;
 var OFFER_QUEST_MAX = 10;
 
-document.querySelector('.map').classList.remove('map--faded');
+var template = document.querySelector('template').content;
+var mapPinTemplate = template.querySelector('.map__pin');
+var mapCardTemplate = template.querySelector('.map__card');
+
+var mapElement = document.querySelector('.map');
+var mapPinsElement = mapElement.querySelector('.map__pins');
+var mapPinsItemsElement = null;
+var mapPinMainElement = document.querySelector('.map__pin--main');
+var mapCardPopupElement = null;
+
+var adForm = document.querySelector('.ad-form');
+var formActive = false;
+var adFormFieldset = adForm.querySelectorAll('fieldset');
+var adFormAddress = document.getElementById('address');
 
 var getRandom = function (max, min) {
   min = (!min) ? 0 : min; // если min не задан, то генерируем от 0
@@ -42,7 +62,7 @@ var getRandomArrayElement = function (arr) {
 var shuffleArray = function (arr) {
   // возвращает массив с перемешенными элементами
   var newArr = arr.slice();
-  for (i = newArr.length - 1; i > 0; i--) {
+  for (var i = newArr.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));
     var temp = newArr[i];
     newArr[i] = newArr[j];
@@ -79,7 +99,7 @@ var getRandomArrayElements = function (arr, amountElements) {
 
 // индексы, в случайном порядке, для картинок аватарок:
 var pinAvatarIndex = shuffleArray(PIN_AVATAR_INDEX);
-// массива в случайном порядке с заголовками объявлений:
+// массив в случайном порядке с заголовками объявлений:
 var pinTitles = shuffleArray(PIN_TITLE);
 
 var getPinItem = function (i) {
@@ -105,18 +125,19 @@ var getPinItem = function (i) {
       'features': getRandomArrayElements(PIN_FEATURES),
       'description': '',
       'photos': getRandomArrayElements(PIN_PHOTOS, PIN_PHOTOS.length)
-    }
+    },
+    'pinIndex': i
   };
 };
 
-var pinsList = [];
-for (var i = 0; i < PIN_AMOUNT; i++) {
-  pinsList.push(getPinItem(i));
-}
-
-var template = document.querySelector('template').content;
-var mapPinTemplate = template.querySelector('.map__pin');
-var mapCardTemplate = template.querySelector('.map__card');
+var getPinsList = function () {
+  var pins = [];
+  for (var i = 0; i < PIN_AMOUNT; i++) {
+    pins.push(getPinItem(i));
+  }
+  return pins;
+};
+var pinsList = getPinsList();
 
 var renderMapPin = function (pinData) {
   var newElement = mapPinTemplate.cloneNode(true);
@@ -133,17 +154,19 @@ var renderMapPin = function (pinData) {
 
 var renderMapPins = function (arr) {
   var fragment = document.createDocumentFragment();
-  for (i = 0; i < arr.length; i++) {
+  for (var i = 0; i < arr.length; i++) {
     fragment.appendChild(renderMapPin(arr[i]));
   }
 
   return fragment;
 };
 
-var mapPins = document.querySelector('.map__pins');
-mapPins.appendChild(renderMapPins(pinsList));
+var activateMapPins = function () {
+  mapPinsElement.appendChild(renderMapPins(pinsList));
+  mapPinsItemsElement = mapPinsElement.querySelectorAll('.map__pin:not(.map__pin--main)');
+};
 
-var renderPopupMapCard = function (pinData) {
+var getPopupMapCard = function (pinData) {
   var fragment = document.createDocumentFragment();
   var newElement = mapCardTemplate.cloneNode(true);
 
@@ -161,7 +184,7 @@ var renderPopupMapCard = function (pinData) {
     popupFeatures.removeChild(popupFeatures.firstChild);
   }
   // создаем и добавляем новые li с нужными классами
-  for (i = 0; i < pinData.offer.features.length; i++) {
+  for (var i = 0; i < pinData.offer.features.length; i++) {
     var popupFeatureItem = document.createElement('li');
     popupFeatureItem.classList.add('popup__feature');
     popupFeatureItem.classList.add('popup__feature--' + pinData.offer.features[i]);
@@ -193,5 +216,70 @@ var renderPopupMapCard = function (pinData) {
   return fragment;
 };
 
-var map = document.querySelector('.map');
-map.appendChild(renderPopupMapCard(pinsList[0]));
+var deletePopupMapCard = function () {
+  if (mapCardPopupElement) {
+    mapElement.removeChild(mapCardPopupElement);
+  }
+};
+
+var renderPopupMapCard = function (i) {
+  mapElement.appendChild(getPopupMapCard(pinsList[i]));
+
+  mapCardPopupElement = mapElement.querySelector('.map__card.popup');
+  var mapCardPopupCloseElement = mapCardPopupElement.querySelector('.popup__close');
+
+  mapCardPopupCloseElement.addEventListener('click', function () {
+    deletePopupMapCard();
+  });
+
+  mapCardPopupCloseElement.addEventListener('keydown', function (evt) {
+    if (evt.keyCode === ENTER_KEYCODE) {
+      deletePopupMapCard();
+    }
+  });
+};
+
+// Переключает/выключает доступность (disabled):
+var switchesDisabled = function (arr, onOff) {
+  for (var i = 0; i < arr.length; i++) {
+    arr[i].disabled = onOff;
+  }
+};
+
+var activateForm = function () {
+  switchesDisabled(adFormFieldset, false);
+  mapElement.classList.remove('map--faded');
+  adForm.classList.remove('ad-form--disabled');
+};
+
+var getAddress = function (pin) {
+  var addressX = Math.round(parseInt(pin.style.left, 10) + (PIN_MAIN_WIDTH / 2));
+  var addressY = Math.round(parseInt(pin.style.top, 10));
+  addressY += formActive ? (PIN_MAIN_HEIGHT + PIN_MAIN_POINTER) : (PIN_MAIN_HEIGHT / 2);
+  return addressX + ', ' + addressY;
+};
+
+adFormAddress.value = getAddress(mapPinMainElement);
+
+var addClickToPin = function (pinIndex) {
+  mapPinsItemsElement[pinIndex].addEventListener('click', function () {
+    deletePopupMapCard();
+    renderPopupMapCard(pinIndex);
+  });
+};
+
+var activateEventListener = function () {
+  for (var i = 0; i < mapPinsItemsElement.length; i++) {
+    addClickToPin(i);
+  }
+};
+
+mapPinMainElement.addEventListener('mouseup', function () {
+  if (!formActive) {
+    formActive = true;
+    activateForm();
+    activateMapPins();
+    activateEventListener();
+  }
+  adFormAddress.value = getAddress(mapPinMainElement);
+});
