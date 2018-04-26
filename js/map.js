@@ -41,7 +41,9 @@ var mapCardTemplate = template.querySelector('.map__card');
 
 var map = document.querySelector('.map');
 var mapPins = map.querySelector('.map__pins');
+var mapPinsItems = null;
 var mapPinMain = document.querySelector('.map__pin--main');
+var mapCardPopup = null;
 
 var adForm = document.querySelector('.ad-form');
 var formActive = false;
@@ -123,7 +125,8 @@ var getPinItem = function (i) {
       'features': getRandomArrayElements(PIN_FEATURES),
       'description': '',
       'photos': getRandomArrayElements(PIN_PHOTOS, PIN_PHOTOS.length)
-    }
+    },
+    'pinIndex': i
   };
 };
 
@@ -136,7 +139,7 @@ var getPinsList = function () {
 };
 var pinsList = getPinsList();
 
-var renderMapPin = function (pinData, pinIndex) {
+var renderMapPin = function (pinData) {
   var newElement = mapPinTemplate.cloneNode(true);
 
   var picture = newElement.querySelector('img');
@@ -146,18 +149,13 @@ var renderMapPin = function (pinData, pinIndex) {
   newElement.style.left = pinData.location.x - PIN_WIDTH / 2 + 'px';
   newElement.style.top = pinData.location.y - PIN_HEIGHT + 'px';
 
-  var inputPinIndex = document.createElement('input');
-  inputPinIndex.type = 'hidden';
-  inputPinIndex.value = pinIndex;
-  newElement.appendChild(inputPinIndex);
-
   return newElement;
 };
 
 var renderMapPins = function (arr) {
   var fragment = document.createDocumentFragment();
   for (var i = 0; i < arr.length; i++) {
-    fragment.appendChild(renderMapPin(arr[i], i));
+    fragment.appendChild(renderMapPin(arr[i]));
   }
 
   return fragment;
@@ -165,6 +163,7 @@ var renderMapPins = function (arr) {
 
 var activateMapPins = function () {
   mapPins.appendChild(renderMapPins(pinsList));
+  mapPinsItems = mapPins.querySelectorAll('.map__pin:not(.map__pin--main)');
 };
 
 var getPopupMapCard = function (pinData) {
@@ -218,7 +217,6 @@ var getPopupMapCard = function (pinData) {
 };
 
 var deletePopupMapCard = function () {
-  var mapCardPopup = map.querySelector('.map__card.popup');
   if (mapCardPopup) {
     map.removeChild(mapCardPopup);
   }
@@ -227,7 +225,7 @@ var deletePopupMapCard = function () {
 var renderPopupMapCard = function (i) {
   map.appendChild(getPopupMapCard(pinsList[i]));
 
-  var mapCardPopup = map.querySelector('.map__card.popup');
+  mapCardPopup = map.querySelector('.map__card.popup');
   var mapCardPopupClose = mapCardPopup.querySelector('.popup__close');
 
   mapCardPopupClose.addEventListener('click', function () {
@@ -256,28 +254,23 @@ var activateForm = function () {
 
 var getAddress = function (pin) {
   var addressX = Math.round(parseInt(pin.style.left, 10) + (PIN_MAIN_WIDTH / 2));
-  var addressY = Math.round(parseInt(pin.style.top, 10) + PIN_MAIN_HEIGHT + PIN_MAIN_POINTER);
+  var addressY = Math.round(parseInt(pin.style.top, 10));
+  addressY += formActive ? (PIN_MAIN_HEIGHT + PIN_MAIN_POINTER) : (PIN_MAIN_HEIGHT / 2);
   return addressX + ', ' + addressY;
 };
 
-var getDefaultAddress = function (pin) {
-  var addressX = Math.round(parseInt(pin.style.left, 10) + (PIN_MAIN_WIDTH / 2));
-  var addressY = Math.round(parseInt(pin.style.top, 10) + (PIN_MAIN_HEIGHT / 2));
-  return addressX + ', ' + addressY;
-};
+adFormAddress.value = getAddress(mapPinMain);
 
-adFormAddress.value = getDefaultAddress(mapPinMain);
-
-var activatePopupMapCard = function (evt) {
-  var pinIndex = evt.currentTarget.querySelector('input').value;
-  deletePopupMapCard();
-  renderPopupMapCard(pinIndex);
+var activatePopupMapCard = function (pinIndex) {
+  mapPinsItems[pinIndex].addEventListener('click', function () {
+    deletePopupMapCard();
+    renderPopupMapCard(pinIndex);
+  });
 };
 
 var activateEventListener = function () {
-  var mapPinsItems = mapPins.querySelectorAll('.map__pin:not(.map__pin--main)');
   for (var i = 0; i < mapPinsItems.length; i++) {
-    mapPinsItems[i].addEventListener('click', activatePopupMapCard);
+    activatePopupMapCard(i);
   }
 };
 
@@ -291,9 +284,3 @@ mapPinMain.addEventListener('mouseup', function () {
   adFormAddress.value = getAddress(mapPinMain);
 
 });
-
-// console.log(mapPins.querySelectorAll(".map__pin"));
-
-// mapPins.addEventListener('click', function (evn) {
-//   console.log(evn);
-// });
